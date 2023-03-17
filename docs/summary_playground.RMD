@@ -1,0 +1,110 @@
+---
+title: "Summary Playground"
+author: "Kimberly Bastille"
+date: "3/17/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+shade.alpha <- 0.3
+shade.fill <- "lightgrey"
+lwd <- 1
+pcex <- 2
+trend.alpha <- 0.5
+trend.size <- 2
+hline.size <- 1
+hline.alpha <- 0.35
+hline.lty <- "dashed"
+label.size <- 5
+hjust.label <- 1.5
+letter_size <- 4
+ylim_re <- c(5e6, 30e6)
+ylim_rd <- c(1.75,2.75)
+ylim_ra  <- c(0, 2e6)
+
+
+```
+
+
+```{r data-list}
+datalist<-c("dataA", "dataB", "dataC", "dataD", "dataE")
+
+```
+
+
+```{r functions-to-write-into-package}
+
+summarize_me_for_fun<- function(data){
+  dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
+  # Summary Stats
+  TRange <- quantile(dat$y, c(.025,.05, .25, .75,.95,.975))
+  TMarker <- round(mean(dat$y),digits=5)
+  TName <- dat$title
+  TMin <- min(dat$y)
+  TRange <- cbind(t(TRange),TMarker, TMin, TName)
+  colnames(TRange)<-c("Range1","Range2","Range3","Range4",
+                       "Range5","Range6","Marker",
+                       "Value","Min")
+  summary_df<- data.frame(title = unique(dat$title),
+                          TRange)
+  return(summary_df)
+}
+
+
+
+plot_me_for_fun<- function(data){
+  dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
+  pt<-dat %>% ggplot2::ggplot(aes(x = x, y = y))+
+    ggplot2::annotate("rect", fill = "gray", alpha = 0.3,
+                      xmin = max(dat$x - 10), xmax = max(dat$x),
+                      ymin = -Inf, ymax = Inf)+
+    ggplot2::geom_line()+
+    ggplot2::geom_point()+
+    ggplot2::geom_hline(aes(yintercept = mean(y),),
+               size = hline.size,
+               alpha = hline.alpha,
+               linetype = hline.lty) +
+    #geom_hline(aes(yintercept = sd_TEMP,),
+    ggplot2::geom_hline(aes(yintercept = mean(y) + sd(y),),
+               size = hline.size,
+               alpha = hline.alpha,
+               linetype = "dotted") +
+    #geom_hline(aes(yintercept = -sd_TEMP,),
+    ggplot2::geom_hline(aes(yintercept = mean(y)-sd(y),),
+               size = hline.size,
+               alpha = hline.alpha,
+               linetype = "dotted") +
+    ggplot2::ggtitle(paste(dat$title))+
+    ggplot2::ylab(expression("fix this"))+
+    ggplot2::xlab(expression("Year"))
+  print(pt)
+}
+```
+
+## Plots
+
+These are all the plots you build - look how pretty. 
+
+```{r plots}
+for (i in datalist) {
+  plot_me_for_fun(i)
+}
+```
+
+## Summary data
+
+```{r summary}
+summarydf<- data.frame() #blank df to be populated
+
+for (i in datalist) {
+  dat<-summarize_me_for_fun(i)
+  summarydf<-summarydf %>% rbind(dat)
+}
+
+summarydf
+
+write.csv(summarydf, file = here::here("data","summarydf.csv"))
+```
