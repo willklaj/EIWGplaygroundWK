@@ -48,8 +48,18 @@ summarize_me_for_fun<- function(data){
   colnames(TRange)<-c("Range1","Range2","Range3","Range4",
                        "Range5","Range6","Marker",
                        "Value","Min")
+  Mean<- mean(dat$y)
+  last5<- dat %>% dplyr::filter(x %in% c(max(dat$x):(max(dat$x) - 4))) 
+  last5mean<- mean(last5$y)
+  DifMean <- ifelse(last5mean>Mean, paste0("greater than"), paste0("less than"))
+  guage <- c("I need help") ### Fix this with Will
+  
   summary_df<- data.frame(title = unique(dat$title),
-                          TRange)
+                          TRange, 
+                          Mean, 
+                          last5mean,
+                          DifMean, 
+                          guage)
   return(summary_df)
 }
 
