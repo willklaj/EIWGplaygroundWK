@@ -58,11 +58,13 @@ summarize_me_for_fun<- function(data){
 plot_me_for_fun<- function(data){
   dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
   pt<-dat %>% ggplot2::ggplot(aes(x = x, y = y))+
-    ggplot2::annotate("rect", fill = "gray", alpha = 0.3,
+    ggplot2::annotate("rect", fill = "green", alpha = 0.3,
                       xmin = max(dat$x - 10), xmax = max(dat$x),
                       ymin = -Inf, ymax = Inf)+
-    ggplot2::geom_line()+
-    ggplot2::geom_point()+
+    theme(panel.background = element_rect(fill = "transparent"), # bg of the panel
+          panel.border = element_rect(colour = "black", fill=NA, size=1)) + 
+    ggplot2::geom_line(color = "red")+
+    ggplot2::geom_point(color = "red")+
     ggplot2::geom_hline(aes(yintercept = mean(y),),
                size = hline.size,
                alpha = hline.alpha,
@@ -78,7 +80,7 @@ plot_me_for_fun<- function(data){
                alpha = hline.alpha,
                linetype = "dotted") +
     ggplot2::ggtitle(paste(dat$title))+
-    ggplot2::ylab(expression("fix this"))+
+    ggplot2::ylab(expression("fix this"))+ ## Fix this with Will
     ggplot2::xlab(expression("Year"))
   print(pt)
 }
@@ -88,7 +90,7 @@ plot_me_for_fun<- function(data){
 
 These are all the plots you build - look how pretty. 
 
-```{r plots}
+```{r plots, warning=FALSE}
 for (i in datalist) {
   plot_me_for_fun(i)
 }
@@ -96,7 +98,7 @@ for (i in datalist) {
 
 ## Summary data
 
-```{r summary}
+```{r summary, warning=FALSE}
 summarydf<- data.frame() #blank df to be populated
 
 for (i in datalist) {
@@ -104,7 +106,7 @@ for (i in datalist) {
   summarydf<-summarydf %>% rbind(dat)
 }
 
-summarydf
+DT::datatable(summarydf)
 
 write.csv(summarydf, file = here::here("data","summarydf.csv"))
 ```
