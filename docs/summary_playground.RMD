@@ -40,25 +40,42 @@ datalist<-c("dataA", "dataB", "dataC", "dataD", "dataE")
 summarize_me_for_fun<- function(data){
   dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
   # Summary Stats
-  TRange <- quantile(dat$y, c(.025,.05, .25, .75,.95,.975))
-  TMarker <- round(mean(dat$y),digits=5)
-  TName <- dat$title
-  TMin <- min(dat$y)
-  TRange <- cbind(t(TRange),TMarker, TMin, TName)
-  colnames(TRange)<-c("Range1","Range2","Range3","Range4",
-                       "Range5","Range6","Marker",
-                       "Value","Min")
-  Mean<- mean(dat$y)
+  # TRange <- quantile(dat$y, c(.025,.05, .25, .75,.95,.975))
+  # TMarker <- round(mean(dat$y),digits=5)
+  # TName <- dat$title
+  # TMin <- min(dat$y)
+  # TRange <- cbind(t(TRange),TMarker, TMin, TName)
+  # colnames(TRange)<-c("Range1","Range2","Range3","Range4",
+  #                      "Range5","Range6","Marker",
+  #                      "Value","Min")
+  # 
+  ## Status
+  mn<- mean(dat$y, na.rm=TRUE)
   last5<- dat %>% dplyr::filter(x %in% c(max(dat$x):(max(dat$x) - 4))) 
-  last5mean<- mean(last5$y)
-  DifMean <- ifelse(last5mean>Mean, paste0("greater than"), paste0("less than"))
-  guage <- c("I need help") ### Fix this with Will
+  mn5 = mean(last5$y, na.rm=TRUE)            # mean over the eval period
+  status <- ifelse(mn5>mn, paste0("greater than"), paste0("less than"))
+  
+  ##Trend
+  m1 = lm(last5$x~last5$y)
+  s1 <- summary(m1)
+  b1 <- s1$coefficients[2,1]
+  pval <- s1$coefficients[2,4]
+  pred = predict(m1)
+  delta = pred[length(pred)] - pred[1]  # gives magnitude and direction of change over eval period
+  Z = abs(delta)-(sd(dat$y, na.rm=T))
+  trend <- ifelse(Z > 0, paste0("significantly"), paste0(""))
+  ## Guage
+  cdf <- stats::ecdf(dat$y)
+  guage <- round(cdf(mn5) *100)
   
   summary_df<- data.frame(title = unique(dat$title),
-                          TRange, 
-                          Mean, 
-                          last5mean,
-                          DifMean, 
+                          #TRange, 
+                          mn, 
+                          mn5,
+                          status, 
+                          trend,
+                          delta,
+                          Z,
                           guage)
   return(summary_df)
 }
@@ -120,3 +137,52 @@ DT::datatable(summarydf)
 
 write.csv(summarydf, file = here::here("data","summarydf.csv"))
 ```
+
+
+
+### Notes for improvement 3/29/23
+
+- Guage read out - Percentile rank of last 5 compared to mean of whole series. 
+
+```{r}
+# mn5 = mean(Y5, na.rm=TRUE)            # mean over the eval period
+#   mn = mean(co)                         # mean over entire data series
+#  # pTileRankNew <- round(((length(co_all[co_all <= mn5])/(length(co_all)+1))*100)) # older version of percentile
+#   cdf <- ecdf(co_all)
+#  pTileRankECDF <- round(cdf(mn5) *100)
+```
+
+- Trend - Is mean of last 5 years above or below 1 SD?
+
+```{r}
+# if (trendAnalysis==T) {
+#     par(mar=c(2.5,0,3,0))
+#     plot(1, xlim=c(0.94,1.06), ylim=c(0.6, 1.6), col=0, axes=F, xlab="", ylab="")
+# 
+#     # Mean of eval period outside 10th or 90th percentile?
+#     points(1, 1.225, pch=20, cex=5)
+#     maxNA <- length(Y5) * 0.4 # scale the maximum allowable NAs in eval period
+#     print(paste("Max Na's for eval period= ",maxNA))
+#     if (sum(is.na(Y5)) < maxNA)  {
+#       if (mn5 >= ptile[3])  { text(1, 1.225, col="white", "+", cex=2.6, font=2) }
+#       if (mn5 >= ptile[3])  { text(1, 1.225, col="white", "+", cex=2.6, font=2) }
+#       if (mn5 <= ptile[1])  { text(1, 1.225, col="white", "-", cex=2.6, font=2) }
+# }}
+#       # Change over last 5 yrs > 1 s.d.?
+#       m1 = lm(Y5~X5)
+#       s1 <- summary(m1)
+#       b1 <- s1$coefficients[2,1]
+#       pval <- s1$coefficients[2,4]
+#       pred = predict(m1)
+#       delta = pred[length(pred)] - pred[1]  # gives magnitude and direction of change over eval period
+#       Z = abs(delta)-(sd(co_all, na.rm=T))
+# Z positive means the total change over eval period exceeds 1 s.d. of entire series
+```
+
+Z if pos use significantly
+delta says if it above or below mean
+
+
+LME column 
+Indicator title column
+Y-label column

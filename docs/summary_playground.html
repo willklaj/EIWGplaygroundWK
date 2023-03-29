@@ -180,25 +180,42 @@ pre code {
 <pre class="r"><code>summarize_me_for_fun&lt;- function(data){
   dat&lt;-read.csv(here::here(&quot;data-raw&quot;, paste0(data, &quot;.csv&quot;)))
   # Summary Stats
-  TRange &lt;- quantile(dat$y, c(.025,.05, .25, .75,.95,.975))
-  TMarker &lt;- round(mean(dat$y),digits=5)
-  TName &lt;- dat$title
-  TMin &lt;- min(dat$y)
-  TRange &lt;- cbind(t(TRange),TMarker, TMin, TName)
-  colnames(TRange)&lt;-c(&quot;Range1&quot;,&quot;Range2&quot;,&quot;Range3&quot;,&quot;Range4&quot;,
-                       &quot;Range5&quot;,&quot;Range6&quot;,&quot;Marker&quot;,
-                       &quot;Value&quot;,&quot;Min&quot;)
-  Mean&lt;- mean(dat$y)
+  # TRange &lt;- quantile(dat$y, c(.025,.05, .25, .75,.95,.975))
+  # TMarker &lt;- round(mean(dat$y),digits=5)
+  # TName &lt;- dat$title
+  # TMin &lt;- min(dat$y)
+  # TRange &lt;- cbind(t(TRange),TMarker, TMin, TName)
+  # colnames(TRange)&lt;-c(&quot;Range1&quot;,&quot;Range2&quot;,&quot;Range3&quot;,&quot;Range4&quot;,
+  #                      &quot;Range5&quot;,&quot;Range6&quot;,&quot;Marker&quot;,
+  #                      &quot;Value&quot;,&quot;Min&quot;)
+  # 
+  ## Status
+  mn&lt;- mean(dat$y, na.rm=TRUE)
   last5&lt;- dat %&gt;% dplyr::filter(x %in% c(max(dat$x):(max(dat$x) - 4))) 
-  last5mean&lt;- mean(last5$y)
-  DifMean &lt;- ifelse(last5mean&gt;Mean, paste0(&quot;greater than&quot;), paste0(&quot;less than&quot;))
-  guage &lt;- c(&quot;I need help&quot;) ### Fix this with Will
+  mn5 = mean(last5$y, na.rm=TRUE)            # mean over the eval period
+  status &lt;- ifelse(mn5&gt;mn, paste0(&quot;greater than&quot;), paste0(&quot;less than&quot;))
+  
+  ##Trend
+  m1 = lm(last5$x~last5$y)
+  s1 &lt;- summary(m1)
+  b1 &lt;- s1$coefficients[2,1]
+  pval &lt;- s1$coefficients[2,4]
+  pred = predict(m1)
+  delta = pred[length(pred)] - pred[1]  # gives magnitude and direction of change over eval period
+  Z = abs(delta)-(sd(dat$y, na.rm=T))
+  trend &lt;- ifelse(Z &gt; 0, paste0(&quot;significantly&quot;), paste0(&quot;&quot;))
+  ## Guage
+  cdf &lt;- stats::ecdf(dat$y)
+  guage &lt;- round(cdf(mn5) *100)
   
   summary_df&lt;- data.frame(title = unique(dat$title),
-                          TRange, 
-                          Mean, 
-                          last5mean,
-                          DifMean, 
+                          #TRange, 
+                          mn, 
+                          mn5,
+                          status, 
+                          trend,
+                          delta,
+                          Z,
                           guage)
   return(summary_df)
 }
@@ -252,9 +269,47 @@ for (i in datalist) {
 }
 
 DT::datatable(summarydf)</code></pre>
-<div id="htmlwidget-264577630ac73cdd7bb6" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-264577630ac73cdd7bb6">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5"],["Apple","Banana","Cucumber","Dog","Elephant"],["-0.0134268457240103","-7.40890378432504","1.80252562615625","0.165540649251857","-23.9435407817515"],["0.224957668804305","-7.20128942340281","2.74277151220265","0.310330150348781","-23.5449586837092"],["0.769236559466972","-5.76927151931553","8.5488655267095","0.581505729771302","-18.7722438091625"],["2.45599109958915","-2.13679606241738","23.1487208880421","1.67594652548288","-6.83170360302873"],["2.83181153827439","-0.695309057884291","28.9088679323127","2.00053742036624","-2.14928280738943"],["3.02009066097409","-0.495582719437973","29.6479052307771","2.07492052248607","-1.38811807823383"],["1.5927","-3.94751","15.54649","1.14925","-12.66863"],["-0.292541641473133","-7.6183521818393","0.929040821944195","0.0207511481549322","-24.48173177082"],["Apple","Banana","Cucumber","Dog","Elephant"],[1.59270129874707,-3.9475087016586,15.5464863533922,1.14924784365222,-12.668632238817],[2.90101557171049,-6.9475087016586,28.0497352385372,1.93650077614243,-23.1721820069985],["greater than","less than","greater than","greater than","less than"],["I need help","I need help","I need help","I need help","I need help"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>title<\/th>\n      <th>Range1<\/th>\n      <th>Range2<\/th>\n      <th>Range3<\/th>\n      <th>Range4<\/th>\n      <th>Range5<\/th>\n      <th>Range6<\/th>\n      <th>Marker<\/th>\n      <th>Value<\/th>\n      <th>Min<\/th>\n      <th>Mean<\/th>\n      <th>last5mean<\/th>\n      <th>DifMean<\/th>\n      <th>guage<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[11,12]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-2fee13fa8c215726aa4b" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2fee13fa8c215726aa4b">{"x":{"filter":"none","vertical":false,"data":[["5","51","52","53","54"],["Apple","Banana","Cucumber","Dog","Elephant"],[1.59270129874707,-3.9475087016586,15.5464863533922,1.14924784365222,-12.668632238817],[2.90101557171049,-6.9475087016586,28.0497352385372,1.93650077614243,-23.1721820069985],["greater than","less than","greater than","greater than","less than"],["significantly","","","",""],[1.6129107107231,1.26965795027745,3.81127296882916,0.0260152548474757,3.99016164102591],[0.664394278849425,-0.947274648855209,-5.01491057510092,-0.61479901127254,-3.18590360162288],[97,8,90,80,9]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>title<\/th>\n      <th>mn<\/th>\n      <th>mn5<\/th>\n      <th>status<\/th>\n      <th>trend<\/th>\n      <th>delta<\/th>\n      <th>Z<\/th>\n      <th>guage<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3,6,7,8]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code>write.csv(summarydf, file = here::here(&quot;data&quot;,&quot;summarydf.csv&quot;))</code></pre>
+<div id="notes-for-improvement-32923" class="section level3">
+<h3>Notes for improvement 3/29/23</h3>
+<ul>
+<li>Guage read out - Percentile rank of last 5 compared to mean of whole series.</li>
+</ul>
+<pre class="r"><code># mn5 = mean(Y5, na.rm=TRUE)            # mean over the eval period
+#   mn = mean(co)                         # mean over entire data series
+#  # pTileRankNew &lt;- round(((length(co_all[co_all &lt;= mn5])/(length(co_all)+1))*100)) # older version of percentile
+#   cdf &lt;- ecdf(co_all)
+#  pTileRankECDF &lt;- round(cdf(mn5) *100)</code></pre>
+<ul>
+<li>Trend - Is mean of last 5 years above or below 1 SD?</li>
+</ul>
+<pre class="r"><code># if (trendAnalysis==T) {
+#     par(mar=c(2.5,0,3,0))
+#     plot(1, xlim=c(0.94,1.06), ylim=c(0.6, 1.6), col=0, axes=F, xlab=&quot;&quot;, ylab=&quot;&quot;)
+# 
+#     # Mean of eval period outside 10th or 90th percentile?
+#     points(1, 1.225, pch=20, cex=5)
+#     maxNA &lt;- length(Y5) * 0.4 # scale the maximum allowable NAs in eval period
+#     print(paste(&quot;Max Na&#39;s for eval period= &quot;,maxNA))
+#     if (sum(is.na(Y5)) &lt; maxNA)  {
+#       if (mn5 &gt;= ptile[3])  { text(1, 1.225, col=&quot;white&quot;, &quot;+&quot;, cex=2.6, font=2) }
+#       if (mn5 &gt;= ptile[3])  { text(1, 1.225, col=&quot;white&quot;, &quot;+&quot;, cex=2.6, font=2) }
+#       if (mn5 &lt;= ptile[1])  { text(1, 1.225, col=&quot;white&quot;, &quot;-&quot;, cex=2.6, font=2) }
+# }}
+#       # Change over last 5 yrs &gt; 1 s.d.?
+#       m1 = lm(Y5~X5)
+#       s1 &lt;- summary(m1)
+#       b1 &lt;- s1$coefficients[2,1]
+#       pval &lt;- s1$coefficients[2,4]
+#       pred = predict(m1)
+#       delta = pred[length(pred)] - pred[1]  # gives magnitude and direction of change over eval period
+#       Z = abs(delta)-(sd(co_all, na.rm=T))
+# Z positive means the total change over eval period exceeds 1 s.d. of entire series</code></pre>
+<p>Z if pos use significantly delta says if it above or below mean</p>
+<p>LME column Indicator title column Y-label column</p>
+</div>
 </div>
 
 
