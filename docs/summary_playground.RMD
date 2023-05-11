@@ -1,13 +1,16 @@
 ---
 title: "Summary Playground"
-author: "Kimberly Bastille"
-date: "3/17/2023"
+author: "Kimberly Bastille, Modified by WK"
+date: "5/11/2023"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(tidyr)
+library(here)
+library(dplyr)
 
 shade.alpha <- 0.3
 shade.fill <- "lightgrey"
@@ -30,13 +33,15 @@ ylim_ra  <- c(0, 2e6)
 
 
 ```{r data-list}
-datalist<-c("dataA", "dataB", "dataC", "dataD", "dataE")
+datalist<-c("dataA", "dataB", "dataC", "dataD", "dataE","dataF")
+#datalist<-c("billion", "Chla", "SST")
 
 ```
 
 
 ```{r functions-to-write-into-package}
 
+#need to subset all commands by region
 summarize_me_for_fun<- function(data){
   dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
   # Summary Stats
@@ -69,6 +74,7 @@ summarize_me_for_fun<- function(data){
   guage <- round(cdf(mn5) *100)
   
   summary_df<- data.frame(title = unique(dat$title),
+                          region = unique(dat$region),
                           #TRange, 
                           mn, 
                           mn5,
@@ -81,7 +87,7 @@ summarize_me_for_fun<- function(data){
 }
 
 
-
+#way to loop ggplot to create individual plots per region?
 plot_me_for_fun<- function(data){
   dat<-read.csv(here::here("data-raw", paste0(data, ".csv")))
   pt<-dat %>% ggplot2::ggplot(aes(x = x, y = y))+
@@ -106,8 +112,8 @@ plot_me_for_fun<- function(data){
                size = hline.size,
                alpha = hline.alpha,
                linetype = "dotted") +
-    ggplot2::ggtitle(paste(dat$title))+
-    ggplot2::ylab(expression("fix this"))+ ## Fix this with Will
+    ggplot2::ggtitle(paste(dat$title),subtitle=(paste(dat$region)))+
+    ggplot2::ylab(expression("y"))+ ## Fix this with Will
     ggplot2::xlab(expression("Year"))
   print(pt)
 }
@@ -139,6 +145,40 @@ write.csv(summarydf, file = here::here("data","summarydf.csv"))
 ```
 
 
+### Will's spitballs 5/11/23
+- Need to find way to batch read in and reformat existing EIWG data
+```{r}
+# library(tidyr)
+# library(here)
+# library(dplyr)
+# 
+# #test data
+# #load in data, skip 2 rows (y label, title)
+# SST <- read_csv("data-eiwg/SST.csv", skip = 2)
+# 
+# SST_long <- gather(SST, region, degC, 2:10, factor_key=TRUE)
+# SST_format <- SST_long %>% mutate(title = "SST")
+# colnames(SST_format) <- c('y','region','x','title')
+# head(SST_format)
+# 
+# #test batch
+# #take a swing at loop
+# 
+# eiwg_files <- list.files(here::here("data-eiwg"))
+# for(i in eiwg_files) {                        
+#   name <- gsub(".csv","",i)
+#   assign(name,                                   
+#   read.csv(here("data-eiwg",i), skip = 2))
+# }
+# #this^ works but you lose units
+# 
+# indicator_names <- gsub(".csv","",eiwg_files)
+# dfs <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+# res<- lapply(dfs, function(w) {gather(w, region, unit, 2:ncol(w), factor_key=TRUE)})
+# indicators <- mapply(cbind, res, "title"=indicator_names, SIMPLIFY=F)
+# 
+# #produces list of indicator dfs in same format as dummy data
+```
 
 ### Notes for improvement 3/29/23
 
